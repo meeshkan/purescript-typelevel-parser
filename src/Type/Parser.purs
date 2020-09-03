@@ -19,17 +19,11 @@ foreign import kind Parser
 
 foreign import kind ParserList
 
-foreign import kind KVParser
-
-foreign import kind KVParserList
-
 foreign import kind ParserResult
 
 foreign import kind PositiveParserResult
 
 foreign import kind PositiveParserResultList
-
-foreign import kind PositiveParserResultIndexedList
 
 -- lists
 foreign import data NilSymbol :: SymbolList
@@ -44,17 +38,9 @@ foreign import data NilParser :: ParserList
 
 foreign import data ConsParser :: Parser -> ParserList -> ParserList
 
-foreign import data NilKVParser :: KVParserList
-
-foreign import data ConsKVParser :: KVParser -> KVParserList -> KVParserList
-
 foreign import data NilPositiveParserResult :: PositiveParserResultList
 
 foreign import data ConsPositiveParserResult :: PositiveParserResult -> PositiveParserResultList -> PositiveParserResultList
-
-foreign import data NilIndexedPositiveParserResult :: PositiveParserResultIndexedList
-
-foreign import data ConsIndexedPositiveParserResult :: Symbol -> PositiveParserResult -> PositiveParserResultIndexedList -> PositiveParserResultIndexedList
 
 -- matcher
 foreign import data EmptyMatcher :: Matcher
@@ -100,19 +86,13 @@ foreign import data AtMostMatcher' :: Nat -> Symbol -> Matcher
 foreign import data AtMostMatcher :: Nat -> SymbolList -> Matcher
 
 -- parser
-foreign import data KVParser :: Matcher -> Parser -> Matcher -> KVParser
-
 foreign import data FailingParser :: Parser
 
 foreign import data SingletonParser :: Matcher -> Type -> Parser
 
 foreign import data ListParser :: Parser -> Matcher -> Type -> Parser
 
-foreign import data IndexedListParser :: Matcher -> Parser -> Matcher -> Type -> Parser
-
 foreign import data TupleParser :: ParserList -> Matcher -> Type -> Parser
-
-foreign import data IndexedTupleParser :: KVParserList -> Matcher -> Type -> Parser
 
 foreign import data UnionParser :: ParserList -> Type -> Parser
 
@@ -128,8 +108,6 @@ foreign import data FailMatch :: Symbol -> Symbol -> MatcherResult
 foreign import data SingletonParserResult :: Symbol -> Type -> PositiveParserResult
 
 foreign import data ListParserResult :: PositiveParserResultList -> Type -> PositiveParserResult
-
-foreign import data IndexedListParserResult :: PositiveParserResultIndexedList -> Type -> PositiveParserResult
 
 foreign import data UnionParserResult :: PositiveParserResult -> Type -> PositiveParserResult
 
@@ -205,18 +183,6 @@ instance parserlGateTrue :: ParserListGate True s0 s1 s0
 
 instance parserlGateFalse :: ParserListGate False s0 s1 s1
 
-class KVParserListGate (b :: Boolean) (s0 :: KVParserList) (s1 :: KVParserList) (r :: KVParserList) | b s0 s1 -> r
-
-instance kvparserlGateTrue :: KVParserListGate True s0 s1 s0
-
-instance kvparserlGateFalse :: KVParserListGate False s0 s1 s1
-
-class PositiveParserResultIndexedListGate (b :: Boolean) (s0 :: PositiveParserResultIndexedList) (s1 :: PositiveParserResultIndexedList) (r :: PositiveParserResultIndexedList) | b s0 s1 -> r
-
-instance rowListGateTrue :: PositiveParserResultIndexedListGate True s0 s1 s0
-
-instance rowListGateFalse :: PositiveParserResultIndexedListGate False s0 s1 s1
-
 class MatcherListGate (b :: Boolean) (s0 :: MatcherList) (s1 :: MatcherList) (r :: MatcherList) | b s0 s1 -> r
 
 instance matcherListGateTrue :: MatcherListGate True s0 s1 s0
@@ -253,52 +219,11 @@ instance getParserTailCons :: GetParserTail (ConsParser h t) t
 
 instance getParserTailNil :: GetParserTail NilParser NilParser
 
-foreign import data KVTag :: Type
-
-foreign import data KVLeft :: Type
-
-foreign import data KVSpace :: Type
-
-class GetKVParserHead (pl :: KVParserList) (p :: Parser) | pl -> p
-
-instance getKVParserHeadCons ::
-  GetKVParserHead
-    ( ConsKVParser (KVParser left right space) t
-    )
-    ( TupleParser
-        ( ConsParser (SingletonParser left KVLeft)
-            (ConsParser right NilParser)
-        )
-        space
-        KVTag
-    )
-
-instance getKVParserHeadNil ::
-  GetKVParserHead NilKVParser ( TupleParser
-        ( ConsParser FailingParser
-            (ConsParser FailingParser NilParser)
-        )
-        (EmptyMatcher)
-        KVTag
-    )
-
-class GetKVParserTail (pl :: KVParserList) (p :: KVParserList) | pl -> p
-
-instance getKVParserTailCons :: GetKVParserTail (ConsKVParser h t) t
-
-instance getKVParserTailNil :: GetKVParserTail NilKVParser NilKVParser
-
 class IsNilParserList (pl :: ParserList) (b :: Boolean) | pl -> b
 
 instance isNilParserListTrue :: IsNilParserList NilParser True
 
 instance isNilParserListFalse :: IsNilParserList (ConsParser a b) False
-
-class IsNilKVParserList (pl :: KVParserList) (b :: Boolean) | pl -> b
-
-instance isNilkvParserListTrue :: IsNilKVParserList NilKVParser True
-
-instance isNilkvParserListFalse :: IsNilKVParserList (ConsKVParser a b) False
 
 class PositiveResultHack (r :: ParserResult) (h :: PositiveParserResult) | r -> h
 
@@ -314,21 +239,7 @@ instance asPositiveParserResultListSuccessSingleton :: AsPositiveParserResultLis
 
 instance asPositiveParserResultListSuccessPositiveParserResultList :: AsPositiveParserResultList (Success (ListParserResult x y)) x
 
-instance asPositiveParserResultListSuccessPositiveParserResultIndexedList :: AsPositiveParserResultList (Success (IndexedListParserResult x y)) NilPositiveParserResult
-
 instance asPositiveParserResultListSuccessUnion :: AsPositiveParserResultList (Success (UnionParserResult x y)) NilPositiveParserResult
-
-class AsPositiveParserResultIndexedList (r :: ParserResult) (l :: PositiveParserResultIndexedList) | r -> l
-
-instance asPositiveParserPositiveParserResultIndexedListFailure :: AsPositiveParserResultIndexedList (Failure s) NilIndexedPositiveParserResult
-
-instance asPositiveParserPositiveParserResultIndexedListSuccessSingleton :: AsPositiveParserResultIndexedList (Success (SingletonParserResult x y)) NilIndexedPositiveParserResult
-
-instance asPositiveParserPositiveParserResultIndexedListSuccessPositiveParserResultList :: AsPositiveParserResultIndexedList (Success (ListParserResult x y)) NilIndexedPositiveParserResult
-
-instance asPositiveParserPositiveParserResultIndexedListSuccessPositiveParserResultIndexedList :: AsPositiveParserResultIndexedList (Success (IndexedListParserResult x y)) x
-
-instance asPositiveParserPositiveParserResultIndexedListSuccessUnion :: AsPositiveParserResultIndexedList (Success (UnionParserResult x y)) NilIndexedPositiveParserResult
 
 -- singleton
 class SingletonMatcherGate (b :: Boolean) (l :: SymbolList) (s :: Symbol) (r :: MatcherResult) | b l s -> r
@@ -1305,6 +1216,189 @@ testParserListResultT4 =
       c =>
     ParserResultProxy c
 
+testParserListResultT5 ::
+  ParserResultProxy
+    ( Success
+        ( ListParserResult
+            ( ConsPositiveParserResult
+                (SingletonParserResult "aaba" Number)
+                ( ConsPositiveParserResult
+                    (SingletonParserResult "aabb" Number)
+                    ( ConsPositiveParserResult
+                        (SingletonParserResult "bbab" Number)
+                        NilPositiveParserResult
+                    )
+                )
+            )
+            Int
+        )
+    )
+testParserListResultT5 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( ListParser
+          ( SingletonParser
+              ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+              )
+              Number
+          )
+          (SingletonMatcher' "--")
+          Int
+      )
+      "aaba--aabb--bbab"
+      c =>
+    ParserResultProxy c
+
+testParserListResultT6 ::
+  ParserResultProxy
+    ( Success
+        ( ListParserResult
+            ( ConsPositiveParserResult
+                (SingletonParserResult "aaba" Number)
+                NilPositiveParserResult
+            )
+            Int
+        )
+    )
+testParserListResultT6 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( ListParser
+          ( SingletonParser
+              ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+              )
+              Number
+          )
+          (SingletonMatcher' "-")
+          Int
+      )
+      "aaba"
+      c =>
+    ParserResultProxy c
+
+testParserListResultT7 ::
+  ParserResultProxy
+    ( Success
+        ( ListParserResult
+            ( ConsPositiveParserResult
+                (SingletonParserResult "a" Number)
+                ( ConsPositiveParserResult
+                    (SingletonParserResult "a" Number)
+                    ( ConsPositiveParserResult
+                        (SingletonParserResult "b" Number)
+                        ( ConsPositiveParserResult
+                            (SingletonParserResult "a" Number)
+                            NilPositiveParserResult
+                        )
+                    )
+                )
+            )
+            Int
+        )
+    )
+testParserListResultT7 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( ListParser
+          ( SingletonParser
+              ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+              )
+              Number
+          )
+          (SingletonMatcher' "")
+          Int
+      )
+      "aaba"
+      c =>
+    ParserResultProxy c
+
+-- ignore
+testParserIgnore ::
+  ParserResultProxy
+    ( Success
+        ( ListParserResult
+            ( ConsPositiveParserResult
+                (SingletonParserResult "a" Number)
+                ( ConsPositiveParserResult
+                    (SingletonParserResult "a" Number)
+                    ( ConsPositiveParserResult
+                        (SingletonParserResult "b" Number)
+                        ( ConsPositiveParserResult
+                            (SingletonParserResult "a" Number)
+                            NilPositiveParserResult
+                        )
+                    )
+                )
+            )
+            Int
+        )
+    )
+testParserIgnore =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( IgnoreLParser (SingletonMatcher' ":::")
+          ( ListParser
+              ( SingletonParser
+                  ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+                  )
+                  Number
+              )
+              (SingletonMatcher' "")
+              Int
+          )
+      )
+      ":::aaba"
+      c =>
+    ParserResultProxy c
+
+testParserIgnoreR ::
+  ParserResultProxy
+    ( Success
+        ( ListParserResult
+            ( ConsPositiveParserResult
+                (SingletonParserResult "aaba" Number)
+                ( ConsPositiveParserResult
+                    (SingletonParserResult "cc" Boolean)
+                    NilPositiveParserResult
+                )
+            )
+            Int
+        )
+    )
+testParserIgnoreR =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( IgnoreRParser
+          ( TupleParser
+              ( ConsParser
+                  ( SingletonParser
+                      ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+                      )
+                      Number
+                  )
+                  ( ConsParser
+                      ( SingletonParser
+                          ( SomeMatcher (ConsSymbol "c" NilSymbol)
+                          )
+                          Boolean
+                      )
+                      NilParser
+                  )
+              )
+              (SingletonMatcher' ",")
+              Int
+          )
+          (SingletonMatcher' "qrs")
+      )
+      "aaba,ccqrs"
+      c =>
+    ParserResultProxy c
+
 -- parser tuple
 class TupleParserGate (continue :: Boolean) (onSeparator :: Boolean) (pl :: ParserList) (sep :: Matcher) (ph :: Symbol) (pt :: Symbol) (h :: Symbol) (t :: Symbol) (tag :: Type) (r :: ParserResult) | continue onSeparator pl sep ph pt h t tag -> r
 
@@ -1350,63 +1444,18 @@ instance tupleParserGateGo ::
   ) =>
   TupleParserGate True onSep pl sep ph pt h t tag ooo
 
-class ParseKV (p :: Parser) (s :: Symbol) (k :: Symbol) (v :: ParserResult) | p s -> k v
+class ListParserGate (continue :: Boolean) (onSeparator :: Boolean) (p :: Parser) (sep :: Matcher) (ph :: Symbol) (pt :: Symbol) (h :: Symbol) (t :: Symbol) (tag :: Type) (r :: ParserResult) | continue onSeparator p sep ph pt h t tag -> r
 
-class ExtractFirst (pr :: ParserResult) (s :: Symbol) | pr -> s
+instance listParserGateStop :: (Append ph pt phpt) => ListParserGate False onSep p sep ph pt h t tag (Failure phpt)
 
-instance extractFirstFailure :: ExtractFirst (Failure x) ""
-
-instance extractFirstSuccess :: ExtractFirst (Success (ListParserResult (ConsPositiveParserResult (SingletonParserResult x tp) y) tp2)) x
-
-class ExtractSecond (pr :: ParserResult) (s :: ParserResult) | pr -> s
-
-instance extractSecondFailure :: ExtractSecond (Failure x) (Failure x)
-
-instance extractSecondSuccess :: ExtractSecond (Success (ListParserResult (ConsPositiveParserResult x ((ConsPositiveParserResult y z))) tp)) (Success y)
-
-instance parseKV ::
-  ( Parse
-      ( TupleParser
-          ( ConsParser left
-              (ConsParser right NilParser)
-          )
-          space
-          KVTag
-      )
-      s
-      o
-  , ExtractFirst o k
-  , ExtractSecond o v
-  ) =>
-  ParseKV
-    ( TupleParser
-        ( ConsParser left
-            (ConsParser right NilParser)
-        )
-        space
-        KVTag
-    )
-    s
-    k
-    v
-
-class IndexedTupleParserGate (continue :: Boolean) (onSeparator :: Boolean) (pl :: KVParserList) (sep :: Matcher) (ph :: Symbol) (pt :: Symbol) (h :: Symbol) (t :: Symbol) (tag :: Type) (r :: ParserResult) | continue onSeparator pl sep ph pt h t tag -> r
-
-instance iTupleParserGateStop :: (Append ph pt phpt) => IndexedTupleParserGate False onSep pl sep ph pt h t tag (Failure phpt)
-
-instance iTupleParserGateGo ::
-  ( GetKVParserHead pl parserHead -- get the head parser, or failure if no head
-  , GetKVParserTail pl maybeParserTail -- get the tail parser
-  , KVParserListGate onSep pl maybeParserTail parserTail
-  , ParseKV parserHead h key val -- parse the head as if it were a kv parser
-  , Parse (SingletonParser sep Unit) h headresASSep -- parse the head as if it were a separator
-  , IsParserSuccess val headParsedAsKV -- did the parsing succeed?
-  , IsParserSuccess headresASSep headParsedAsSep -- did the parsing succeed?
+instance listParserGateGo ::
+  ( ParserGate onSep (SingletonParser sep Unit) p toParse -- parse using the separator or the head
+  , Parse toParse h headres -- parse the head. will yield failure if pl was empty 
+  , IsParserSuccess headres headParsed -- did the parsing succeed?
   , Not onSep notOnSep -- flip the separator
-  , BooleanGate onSep headParsedAsSep headParsedAsKV headParsed
-  , IndexedTupleParserGate headParsed notOnSep parserTail sep "" "" "" t tag tailres -- if the parsing succeeded, continue
+  , ListParserGate headParsed notOnSep p sep "" "" "" t tag tailres -- if the parsing succeeded, continue
   , IsParserSuccess tailres tailParsed -- did the tail parse as well
-  , AsPositiveParserResultIndexedList tailres tailParserResults -- gets a list back, or nil if it's not a list 
+  , AsPositiveParserResultList tailres tailParserResults -- gets a list back, or nil if it's not a list 
   , And headParsed tailParsed fullSuccess -- did the whole thing succeed?
   , SafeCons th nt t -- new tail
   , Append h th nh -- new head
@@ -1414,27 +1463,111 @@ instance iTupleParserGateGo ::
   , IsEQ tailToEmptySym tailEmpty -- is the tail empty?
   , And headParsed tailEmpty hpte -- we successfully parsed the head and the tail's empty
   , And hpte notOnSep endOfSymbol -- the head parsed was something we want, so we are at the end of the symbol
-  , IsNilKVParserList parserTail parserListEmpty -- there is nothing left in the parser list
-  , And endOfSymbol parserListEmpty endOfSymbolAndPl -- we are at the end and there's nothing left to parse
-  , Or fullSuccess endOfSymbolAndPl done -- either everything succeeded or nothing left to parse
+  , Or fullSuccess endOfSymbol done -- either everything succeeded or nothing left to parse
   , And fullSuccess onSep fullSuccessAndOnStep -- we are on a stepping stage
-  , PositiveResultHack val valHack -- extract a positive result or a dummy value
-  , PositiveParserResultIndexedListGate
-      endOfSymbolAndPl
-      (ConsIndexedPositiveParserResult key valHack NilIndexedPositiveParserResult)
-      NilIndexedPositiveParserResult
+  , PositiveResultHack headres headParsedHack -- extract a positive result or a dummy value
+  , PositiveParserResultListGate
+      endOfSymbol
+      (ConsPositiveParserResult headParsedHack NilPositiveParserResult)
+      NilPositiveParserResult
       step0
-  , PositiveParserResultIndexedListGate fullSuccess (ConsIndexedPositiveParserResult key valHack tailParserResults) step0 step1
-  , PositiveParserResultIndexedListGate fullSuccessAndOnStep tailParserResults step1 successfulOutput
+  , PositiveParserResultListGate fullSuccess (ConsPositiveParserResult headParsedHack tailParserResults) step0 step1
+  , PositiveParserResultListGate fullSuccessAndOnStep tailParserResults step1 successfulOutput
   , Not done notDone
   , Not tailEmpty notTailEmpty
   , And notDone notTailEmpty keepGoing -- keep going if tail not empty, parser list not empty, and not done
   , Append h t ht -- for failure message if needed
-  , IndexedTupleParserGate keepGoing onSep pl sep h t nh nt tag o -- shift the head and tail and try again
+  , ListParserGate keepGoing onSep p sep h t nh nt tag o -- shift the head and tail and try again
   , ParserResultGate keepGoing o (Failure ht) oo
-  , ParserResultGate done (Success (IndexedListParserResult successfulOutput tag)) oo ooo
+  , ParserResultGate done (Success (ListParserResult successfulOutput tag)) oo ooo
   ) =>
-  IndexedTupleParserGate True onSep pl sep ph pt h t tag ooo
+  ListParserGate True onSep p sep ph pt h t tag ooo
+
+-- Union parser
+class UnionParserRunner (b :: Boolean) (d :: ParserResult) (l :: ParserList) (s :: Symbol) (r :: ParserResult) | b d l s -> r
+
+instance uprNilF :: UnionParserRunner False d NilParser s d
+
+instance uprNilT :: UnionParserRunner True d NilParser s (Failure s)
+
+instance uprConsT ::
+  ( Parse x s r
+  , IsParserSuccess r b
+  , Not b go
+  , UnionParserRunner go d y s v
+  , ParserResultGate b r v rr
+  ) =>
+  UnionParserRunner True d (ConsParser x y) s rr
+
+instance uprConsF :: UnionParserRunner False d (ConsParser x y) s d
+
+testParserUnionResultT3 ::
+  ParserResultProxy
+    ( Success
+        ( UnionParserResult
+            (SingletonParserResult "aaba" Number)
+            Int
+        )
+    )
+testParserUnionResultT3 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( UnionParser
+          ( ConsParser
+              ( SingletonParser
+                  ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+                  )
+                  Number
+              )
+              ( ConsParser
+                  ( SingletonParser
+                      ( SomeMatcher (ConsSymbol "c" NilSymbol)
+                      )
+                      Boolean
+                  )
+                  NilParser
+              )
+          )
+          Int
+      )
+      "aaba"
+      c =>
+    ParserResultProxy c
+
+testParserUnionResultT4 ::
+  ParserResultProxy
+    ( Success
+        ( UnionParserResult
+            (SingletonParserResult "cc" Boolean)
+            Int
+        )
+    )
+testParserUnionResultT4 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( UnionParser
+          ( ConsParser
+              ( SingletonParser
+                  ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+                  )
+                  Number
+              )
+              ( ConsParser
+                  ( SingletonParser
+                      ( SomeMatcher (ConsSymbol "c" NilSymbol)
+                      )
+                      Boolean
+                  )
+                  NilParser
+              )
+          )
+          Int
+      )
+      "cc"
+      c =>
+    ParserResultProxy c
 
 -- Match
 class Match (p :: Matcher) (s :: Symbol) (r :: MatcherResult) | p s -> r
@@ -1581,3 +1714,72 @@ instance parseTuple ::
   , ParserResultGate b (Success (ListParserResult NilPositiveParserResult tag)) r rr
   ) =>
   Parse (TupleParser pl m tag) s rr
+
+instance parseList ::
+  ( Compare s "" eq
+  , IsEQ eq b
+  , Not b runComp
+  , ListParserGate runComp False p m "" "" "" s tag r
+  , ParserResultGate b (Success (ListParserResult NilPositiveParserResult tag)) r rr
+  ) =>
+  Parse (ListParser p m tag) s rr
+
+instance parseUnion ::
+  ( UnionParserRunner True (Failure s) (ConsParser x y) s r
+  , IsParserSuccess r b
+  , PositiveResultHack r insideR
+  , ParserResultGate b (Success (UnionParserResult insideR tag)) r rr
+  ) =>
+  Parse (UnionParser (ConsParser x y) tag) s rr
+
+instance parseUnionN :: Parse (UnionParser NilParser tag) s (Failure s)
+
+instance parseIgnoreL ::
+  ( Parse (TupleParser (ConsParser (SingletonParser m Unit) (ConsParser p NilParser)) (SingletonMatcher' "") Unit) s r
+  , IsParserSuccess r b
+  , PositiveResultHack r (ListParserResult (ConsPositiveParserResult x (ConsPositiveParserResult insideR z)) t)
+  , ParserResultGate b (Success insideR) r rr
+  ) =>
+  Parse (IgnoreLParser m p) s rr
+
+instance parseIgnoreR ::
+  ( Parse (TupleParser (ConsParser p (ConsParser (SingletonParser m Unit) NilParser)) (SingletonMatcher' "") Unit) s r
+  , IsParserSuccess r b
+  , PositiveResultHack r (ListParserResult (ConsPositiveParserResult insideR z) t)
+  , ParserResultGate b (Success insideR) r rr
+  ) =>
+  Parse (IgnoreRParser p m) s rr
+
+type UP
+  = UnionParser
+
+type LP
+  = ListParser
+
+type TP
+  = TupleParser
+
+type SP
+  = SingletonParser
+
+type FP
+  = FailingParser
+
+type Ns
+  = NilSymbol
+
+infix 4 type IgnoreLParser as *@>
+
+infix 4 type IgnoreRParser as <@*
+
+infix 4 type ConsSymbol as :/
+
+type Nm
+  = NilMatcher
+
+infix 4 type ConsMatcher as :-
+
+type Np
+  = NilParser
+
+infix 4 type ConsParser as :$
