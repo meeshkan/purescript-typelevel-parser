@@ -6,7 +6,7 @@ Turn DSLs into ASTs.
 
 There are lots of DSLs in the world, like GraphQL and OpenAPI. These DSLs are usually ported to a language as an AST, ie GraphQL to [`purescript-graphql-parser`](https://github.com/meeshkan/purescript-graphql-parser).
 
-The problem with this approach is that, if the DSL is supposed to describe the business logic of an application, then you need some form of code generation to make sure that the implementation is conformant to the DSL. Think again of GraphQL - to make sure that resolvers are conformant to a spec, you either need code generation or runtime assertions. Both are clunky.
+The problem with this approach is that, if the DSL is supposed to describe the business logic of an application, then you need to do extra work to make sure that the implementation is conformant to the DSL. Think again of GraphQL - to make sure that resolvers are conformant to a spec, you either need code generation or runtime assertions. Both are clunky.
 
 This library fixes that. By using a typelevel-parser, you can create a typelevel-AST from a DSL. Then, you can transform the AST to the correct type, ie resolvers for a GraphQL server. This guarantees that the code won't compile unless your implementation is conformant to the spec.
 
