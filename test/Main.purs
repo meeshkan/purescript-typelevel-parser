@@ -977,6 +977,10 @@ testParserDeep =
     ParserResultProxy c
 
 --- readme
+-- our spec
+type OurSpec
+  = "python&java&javascript"
+
 -- for each element of the AST, we define a tag that we use in the parser
 data Key
 
@@ -1021,7 +1025,7 @@ nqlTypeProxy :: RProxy ( python :: Int, javascript :: Int, java :: Int )
 nqlTypeProxy =
   RProxy ::
     forall (c :: # Type).
-    SymbolToNumberQLType "python&java&javascript" c =>
+    SymbolToNumberQLType OurSpec c =>
     RProxy c
 
 useNumberQL :: forall c. RProxy c -> Record c -> Record c

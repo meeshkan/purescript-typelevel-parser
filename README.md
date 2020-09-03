@@ -27,6 +27,10 @@ import Type.Parser (class Parse,
   Lowercase, NilPositiveParserResult, SingletonMatcher', SingletonParserResult,
   SomeMatcher, Success, kind ParserResult)
 
+-- our spec
+type OurSpec
+  = "python&java&javascript"
+
 data Key
 
 data Keys
@@ -70,16 +74,19 @@ instance symbolToNumberQLType :: (
  , NumberQLToRow out r
 ) => SymbolToNumberQLType s r
 
+-- this acts as an optional assertion that our spec is compliant going forward
 nqlTypeProxy :: RProxy ( python :: Int, javascript :: Int, java :: Int )
 nqlTypeProxy =
   RProxy ::
     forall (c :: # Type).
-    SymbolToNumberQLType "python&java&javascript" c =>
+    SymbolToNumberQLType OurSpec c =>
     RProxy c
 
+-- we use the assertion for all future typechecking
 useNumberQL :: forall c. RProxy c -> Record c -> Record c
 useNumberQL _ = identity
 
+-- our type is conformant to the DSL!
 languages :: { python :: Int, javascript :: Int, java :: Int }
 languages =
   useNumberQL nqlTypeProxy
