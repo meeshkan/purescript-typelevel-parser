@@ -130,6 +130,8 @@ type FP
 type Ns
   = NilSymbol
 
+infixr 4 type ConcatMatcher as <<>>
+
 infixr 4 type ConsSymbol as :/
 
 type Nm
@@ -141,6 +143,69 @@ type Np
   = NilParser
 
 infixr 4 type ConsParser as :$
+
+infix 4 type SingletonParser as !:!
+
+type Digits
+  = "0" :/ "1" :/ "2" :/ "3" :/ "4" :/ "5" :/ "6" :/ "7" :/ "8" :/ "9" :/ Ns
+
+type Lowercase
+  = "a"
+      :/ "b"
+      :/ "c"
+      :/ "d"
+      :/ "e"
+      :/ "f"
+      :/ "g"
+      :/ "h"
+      :/ "i"
+      :/ "j"
+      :/ "k"
+      :/ "l"
+      :/ "m"
+      :/ "n"
+      :/ "o"
+      :/ "p"
+      :/ "q"
+      :/ "r"
+      :/ "s"
+      :/ "t"
+      :/ "u"
+      :/ "v"
+      :/ "w"
+      :/ "x"
+      :/ "y"
+      :/ "z"
+      :/ Ns
+
+type Uppercase
+  = "A"
+      :/ "B"
+      :/ "C"
+      :/ "D"
+      :/ "E"
+      :/ "F"
+      :/ "G"
+      :/ "H"
+      :/ "I"
+      :/ "J"
+      :/ "K"
+      :/ "L"
+      :/ "M"
+      :/ "N"
+      :/ "O"
+      :/ "P"
+      :/ "Q"
+      :/ "R"
+      :/ "S"
+      :/ "T"
+      :/ "U"
+      :/ "V"
+      :/ "W"
+      :/ "X"
+      :/ "Y"
+      :/ "Z"
+      :/ Ns
 
 -- proxy
 data MatcherResultProxy (p :: MatcherResult)

@@ -3,45 +3,10 @@ module Test.Main where
 import Prelude
 import Effect (Effect)
 import Effect.Class.Console (log)
+import Prim.Row (class Cons)
 import Type.Data.Peano (D3, Z)
-import Type.Parser
-  ( class Match
-  , class Parse
-  , type (:/)
-  , type (:$)
-  , AndMatcher
-  , AtLeastMatcher
-  , AtMostMatcher
-  , ConcatMatcher
-  , ConsParser
-  , ConsPositiveParserResult
-  , ConsSymbol
-  , FailMatch
-  , ListParser
-  , ListParserResult
-  , ManyMatcher
-  , ManyMatcher'
-  , MatcherResultProxy(..)
-  , NMatcher
-  , NMatcher'
-  , NilParser
-  , NilPositiveParserResult
-  , NilSymbol
-  , NotMatcher
-  , Ns
-  , OrMatcher
-  , ParserResultProxy(..)
-  , SepMatcher
-  , SingletonMatcher
-  , SingletonMatcher'
-  , SingletonParser
-  , SingletonParserResult
-  , SomeMatcher
-  , SomeMatcher'
-  , Success
-  , SuccessMatch
-  , TupleParser
-  )
+import Type.Data.Row (RProxy(..))
+import Type.Parser (class Match, class Parse, type (!:!), type (:$), type (:/), type (<<>>), AndMatcher, AtLeastMatcher, AtMostMatcher, ConcatMatcher, ConsParser, ConsPositiveParserResult, ConsSymbol, FailMatch, ListParser, ListParserResult, Lowercase, ManyMatcher, ManyMatcher', MatcherResultProxy(..), NMatcher, NMatcher', NilParser, NilPositiveParserResult, NilSymbol, NotMatcher, Ns, OrMatcher, ParserResultProxy(..), SepMatcher, SingletonMatcher, SingletonMatcher', SingletonParser, SingletonParserResult, SomeMatcher, SomeMatcher', Success, SuccessMatch, TupleParser, kind ParserResult)
 
 testSingletonMatcherT0 :: MatcherResultProxy (SuccessMatch "bar")
 testSingletonMatcherT0 =
@@ -356,11 +321,9 @@ testConcatMatcherT1 =
   MatcherResultProxy ::
     forall c.
     Match
-      ( ConcatMatcher
-          (ManyMatcher' "a")
-          ( ConcatMatcher
-              (SingletonMatcher (ConsSymbol "hel" NilSymbol))
-              (SingletonMatcher (ConsSymbol "lo" NilSymbol))
+      ( (ManyMatcher' "a")
+          <<>> ( (SingletonMatcher (ConsSymbol "hel" NilSymbol))
+              <<>> (SingletonMatcher (ConsSymbol "lo" NilSymbol))
           )
       )
       "hello"
@@ -1012,6 +975,65 @@ testParserDeep =
       "?!aaba,ccqrs"
       c =>
     ParserResultProxy c
+
+--- readme
+-- for each element of the AST, we define a tag that we use in the parser
+data Key
+
+data Keys
+
+-- here's our parser
+type KeyList
+  = ListParser ((SomeMatcher Lowercase) !:! Key) (SingletonMatcher' "&") Keys
+
+-- Now, we create a class that turns our AST into a row.
+-- This general pattern can be used to...
+--   turn a GraphQL AST into a GraphQL resolver type
+--   turn an OpenAPI spec into a REST server type
+--   etc.
+class NumberQLToRow (p :: ParserResult) (t :: # Type) | p -> t
+
+instance nqlToRowNil :: NumberQLToRow (Success (ListParserResult NilPositiveParserResult Keys)) res
+
+-- this is where we construct the row
+instance nqlToRowCons ::
+  ( NumberQLToRow (Success (ListParserResult y Keys)) out
+  , Cons key Int out res
+  ) =>
+  NumberQLToRow
+    ( Success
+        ( ListParserResult
+            ( ConsPositiveParserResult
+                (SingletonParserResult key Key)
+                y
+            )
+            Keys
+        )
+    )
+    res
+
+-- we construct the type
+class SymbolToNumberQLType (s :: Symbol) (r :: # Type) | s -> r
+
+instance symbolToNumberQLType :: (Parse KeyList s out, NumberQLToRow out r) => SymbolToNumberQLType s r
+
+nqlTypeProxy :: RProxy ( python :: Int, javascript :: Int, java :: Int )
+nqlTypeProxy =
+  RProxy ::
+    forall (c :: # Type).
+    SymbolToNumberQLType "python&java&javascript" c =>
+    RProxy c
+
+useNumberQL :: forall c. RProxy c -> Record c -> Record c
+useNumberQL _ = identity
+
+languages :: { python :: Int, javascript :: Int, java :: Int }
+languages =
+  useNumberQL nqlTypeProxy
+    { python: 1
+    , javascript: 2
+    , java: 3
+    }
 
 main :: Effect Unit
 main = do
