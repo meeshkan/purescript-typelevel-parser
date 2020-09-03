@@ -22,7 +22,10 @@ module Test.NumberQL where
 import Prelude
 import Prim.Row (class Cons)
 import Type.Data.Row (RProxy(..))
-import Type.Parser (class Parse, type (!:!), ConsPositiveParserResult, ListParser, ListParserResult, Lowercase, NilPositiveParserResult, SingletonMatcher', SingletonParserResult, SomeMatcher, Success, kind ParserResult)
+import Type.Parser (class Parse,
+  type (!:!), ConsPositiveParserResult, ListParser, ListParserResult,
+  Lowercase, NilPositiveParserResult, SingletonMatcher', SingletonParserResult,
+  SomeMatcher, Success, kind ParserResult)
 
 data Key
 
@@ -39,7 +42,8 @@ type KeyList
 --   etc.
 class NumberQLToRow (p :: ParserResult) (t :: # Type) | p -> t
 
-instance nqlToRowNil :: NumberQLToRow (Success (ListParserResult NilPositiveParserResult Keys)) res
+instance nqlToRowNil :: NumberQLToRow (Success
+   (ListParserResult NilPositiveParserResult Keys)) res
 
 -- this is where we construct the row
 instance nqlToRowCons ::
@@ -61,7 +65,10 @@ instance nqlToRowCons ::
 -- we construct the type
 class SymbolToNumberQLType (s :: Symbol) (r :: # Type) | s -> r
 
-instance symbolToNumberQLType :: (Parse KeyList s out, NumberQLToRow out r) => SymbolToNumberQLType s r
+instance symbolToNumberQLType :: (
+   Parse KeyList s out
+ , NumberQLToRow out r
+) => SymbolToNumberQLType s r
 
 nqlTypeProxy :: RProxy ( python :: Int, javascript :: Int, java :: Int )
 nqlTypeProxy =
