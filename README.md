@@ -12,7 +12,7 @@ This library fixes that. By using a typelevel-parser, you can create a typelevel
 
 ## Example
 
-Let's take a simple query string, ie `foo=1&bar=2&baz=3`. Let's call it **NumberQL**. The AST to describe this is that the keys must be composed of lowercase letters and the values must be an integer. Each business has their own NumberQL spec - for example, one supports keys `gold&silver&bronze` and another supports keys `earth&wind&fire`. In code, we want to represent the spec as `{ key1 :: Int, key2 :: Int }`.
+Let's take a simple spec, ie `foo&bar&baz`. Let's call it **TypeQL**. The AST to describe this is that the keys must be composed of lowercase letters separated by an ambersand. Each business has their own TypeQL spec - for example, one supports keys `gold&silver&bronze` as strings and another supports keys `earth&wind&fire` as ints. In code, we want to represent the spec as `{ key1 :: Int, key2 :: Int }`.
 
 At Meeshkan, let's say our spec is `python&javascript&java`. We encode it like this.
 
@@ -44,17 +44,22 @@ type KeyList
 --   turn a GraphQL AST into a GraphQL resolver type
 --   turn an OpenAPI spec into a REST server type
 --   etc.
-class NumberQLToRow (p :: ParserResult) (t :: # Type) | p -> t
+class TypeQLToRow (p :: ParserResult) (i :: Type) (t :: # Type) | p i -> t
 
-instance nqlToRowNil :: NumberQLToRow (Success
-   (ListParserResult NilPositiveParserResult Keys)) res
+instance nqlToRowNil ::
+  TypeQLToRow
+    ( Success
+        (ListParserResult NilPositiveParserResult Keys)
+    )
+    i
+    res
 
 -- this is where we construct the row
 instance nqlToRowCons ::
-  ( NumberQLToRow (Success (ListParserResult y Keys)) out
-  , Cons key Int out res
+  ( TypeQLToRow (Success (ListParserResult y Keys)) i out
+  , Cons key i out res
   ) =>
-  NumberQLToRow
+  TypeQLToRow
     ( Success
         ( ListParserResult
             ( ConsPositiveParserResult
@@ -64,28 +69,30 @@ instance nqlToRowCons ::
             Keys
         )
     )
+    i
     res
 
 -- we construct the type
-class SymbolToNumberQLType (s :: Symbol) (r :: # Type) | s -> r
+class SymbolToRow (s :: Symbol) (i :: Type) (r :: # Type) | s i -> r
 
-instance symbolToNumberQLType :: (
-   Parse KeyList s out
- , NumberQLToRow out r
-) => SymbolToNumberQLType s r
+instance symbolToTypeQLType ::
+  ( Parse KeyList s out
+  , TypeQLToRow out i r
+  ) =>
+  SymbolToRow s i r
 
--- this will validate that our spec is conformant
-validator ::
+-- this will validate that an object conforms to our spec and contains Ints
+intValidator ::
   forall (c :: # Type).
-  SymbolToNumberQLType OurSpec c =>
+  SymbolToRow OurSpec Int c =>
   Record c ->
   Record c
-validator a = a
+intValidator a = a
 
 -- the validator validates that our type is conformant to the DSL!
 languages :: { python :: Int, javascript :: Int, java :: Int }
 languages =
-  validator
+  intValidator
     { python: 1
     , javascript: 2
     , java: 3
