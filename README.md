@@ -12,7 +12,7 @@ This library fixes that. By using a typelevel-parser, you can create a typelevel
 
 ## Example
 
-Let's take a simple query string, ie `foo=1&bar=2&baz=3`. Let's call in **NumberQL**. The AST to describe this is that the keys must be composed of lowercase letters and the values must be an integer. Each business has their own NumberQL spec - for example, one supports keys `gold&silver&bronze` and another supports keys `earth&wind&fire`. In code, we want to represent the spec as `{ key1 :: Int, key2 :: Int }`.
+Let's take a simple query string, ie `foo=1&bar=2&baz=3`. Let's call it **NumberQL**. The AST to describe this is that the keys must be composed of lowercase letters and the values must be an integer. Each business has their own NumberQL spec - for example, one supports keys `gold&silver&bronze` and another supports keys `earth&wind&fire`. In code, we want to represent the spec as `{ key1 :: Int, key2 :: Int }`.
 
 At Meeshkan, let's say our spec is `python&javascript&java`. We encode it like this.
 
