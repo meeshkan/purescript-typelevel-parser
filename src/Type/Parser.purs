@@ -330,7 +330,7 @@ instance pprgt :: PositiveParserResultGate True s0 s1 s0
 
 instance pprgf :: PositiveParserResultGate False s0 s1 s1
 
-class GetParserType (p :: Parser) (t :: Type) | p -> p
+class GetParserType (p :: Parser) (t :: Type) | p -> t
 
 instance getParserTypeFailingParser :: GetParserType FailingParser Void
 
@@ -578,29 +578,27 @@ instance tupleParserGateGo ::
   , Parse toParse h headres -- parse the head. will yield failure if pl was empty 
   , IsParserSuccess headres headParsed -- did the parsing succeed?
   , Append h t ht -- for failure message if needed
-  ----------------- IsParserOptional pl isOptional
-  ----------------- Or isOptional headParsed doNextStep
-  ----------------- SymbolGate headParsed t ht tailForNextStep
+  , IsParserOptional pl isOptional
+  , Or isOptional headParsed doNextStep
+  , SymbolGate headParsed t ht tailForNextStep
   , Not onSep notOnSep -- flip the separator
-  , TupleParserGate headParsed notOnSep parserTail sep "" "" "" t tag tailres -- if the parsing succeeded, continue
+  , TupleParserGate doNextStep notOnSep parserTail sep "" "" "" tailForNextStep tag tailres -- if the parsing succeeded, continue
   , IsParserSuccess tailres tailParsed -- did the tail parse as well
   , AsPositiveParserResultList tailres tailParserResults -- gets a list back, or nil if it's not a list 
-  ------------- And doNextStep tailParsed fullSuccess
-  , And headParsed tailParsed fullSuccess -- did the whole thing succeed?
+  , And doNextStep tailParsed fullSuccess -- did the whole thing succeed?
   , SafeCons th nt t -- new tail
   , Append h th nh -- new head
   , Compare t "" tailToEmptySym -- have we finished parsing the string?
   , IsEQ tailToEmptySym tailEmpty -- is the tail empty?
-  ----------------- And doNextStep tailEmpty hpte
-  , And headParsed tailEmpty hpte -- we successfully parsed the head and the tail's empty
+  , And doNextStep tailEmpty hpte -- we successfully parsed the head and the tail's empty
   , And hpte notOnSep endOfSymbol -- the head parsed was something we want, so we are at the end of the symbol
   , IsNilParserList parserTail parserListEmpty -- there is nothing left in the parser list
   , And endOfSymbol parserListEmpty endOfSymbolAndPl -- we are at the end and there's nothing left to parse
   , Or fullSuccess endOfSymbolAndPl done -- either everything succeeded or nothing left to parse
   , And fullSuccess onSep fullSuccessAndOnStep -- we are on a stepping stage
-  , PositiveResultHack headres headParsedHack -- extract a positive result or a dummy value
-  ----------------- GetParserType parserHead parserHeadType
-  ----------------- PositiveParserResultGate isOptional headParsedHack (OptionalResult parserHeadType) realHeadParsedHack
+  , PositiveResultHack headres headParsedHack0 -- extract a positive result or a dummy value
+  , GetParserType parserHead parserHeadType
+  , PositiveParserResultGate isOptional (OptionalParserResult parserHeadType) headParsedHack headParsedHack
   , PositiveParserResultListGate
       endOfSymbolAndPl
       (ConsPositiveParserResult headParsedHack NilPositiveParserResult)
