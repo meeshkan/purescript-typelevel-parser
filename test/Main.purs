@@ -1046,7 +1046,7 @@ testParserDeep =
 --- readme
 -- our spec
 type OurSpec
-  = "python&java&javascript"
+  = "python&java&javascript&golang"
 
 data Key
 
@@ -1107,12 +1107,13 @@ intValidator ::
 intValidator a = a
 
 -- the validator validates that our type is conformant to the DSL!
-languages :: { python :: Int, javascript :: Int, java :: Int }
+languages :: { python :: Int, javascript :: Int, java :: Int, golang :: Int }
 languages =
   intValidator
     { python: 1
     , javascript: 2
     , java: 3
+    , golang: 88
     }
 
 main :: Effect Unit
