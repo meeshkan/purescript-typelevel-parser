@@ -74,22 +74,18 @@ instance symbolToNumberQLType :: (
  , NumberQLToRow out r
 ) => SymbolToNumberQLType s r
 
--- this acts as an optional assertion that our spec is compliant going forward
-nqlTypeProxy :: RProxy ( python :: Int, javascript :: Int, java :: Int )
-nqlTypeProxy =
-  RProxy ::
-    forall (c :: # Type).
-    SymbolToNumberQLType OurSpec c =>
-    RProxy c
+-- this will validate that our spec is conformant
+validator ::
+  forall (c :: # Type).
+  SymbolToNumberQLType OurSpec c =>
+  Record c ->
+  Record c
+validator a = a
 
--- we use the assertion for all future typechecking
-useNumberQL :: forall c. RProxy c -> Record c -> Record c
-useNumberQL _ = identity
-
--- our type is conformant to the DSL!
+-- the validator validates that our type is conformant to the DSL!
 languages :: { python :: Int, javascript :: Int, java :: Int }
 languages =
-  useNumberQL nqlTypeProxy
+  validator
     { python: 1
     , javascript: 2
     , java: 3

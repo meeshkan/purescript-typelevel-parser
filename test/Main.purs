@@ -1021,19 +1021,12 @@ class SymbolToNumberQLType (s :: Symbol) (r :: # Type) | s -> r
 
 instance symbolToNumberQLType :: (Parse KeyList s out, NumberQLToRow out r) => SymbolToNumberQLType s r
 
-nqlTypeProxy :: RProxy ( python :: Int, javascript :: Int, java :: Int )
-nqlTypeProxy =
-  RProxy ::
-    forall (c :: # Type).
-    SymbolToNumberQLType OurSpec c =>
-    RProxy c
-
-useNumberQL :: forall c. RProxy c -> Record c -> Record c
-useNumberQL _ = identity
+validator :: forall (c :: # Type). SymbolToNumberQLType OurSpec c => Record c -> Record c
+validator a = a
 
 languages :: { python :: Int, javascript :: Int, java :: Int }
 languages =
-  useNumberQL nqlTypeProxy
+  validator
     { python: 1
     , javascript: 2
     , java: 3
