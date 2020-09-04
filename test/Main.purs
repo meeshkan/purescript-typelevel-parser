@@ -1,13 +1,10 @@
 module Test.Main where
 
 import Prelude
-import Data.Symbol (class IsSymbol, SProxy(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Prim.Row (class Cons)
-import Record (delete, get, insert)
 import Type.Data.Peano (D3, Z)
-import Type.Data.Row (RProxy(..))
 import Type.Parser (class Match, class Parse, type (!:!), type (:$), type (:/), type (<<>>), AndMatcher, AtLeastMatcher, AtMostMatcher, ConcatMatcher, ConsParser, ConsPositiveParserResult, ConsSymbol, FailMatch, ListParser, ListParserResult, Lowercase, ManyMatcher, ManyMatcher', MatcherResultProxy(..), NMatcher, NMatcher', NilParser, NilPositiveParserResult, NilSymbol, NotMatcher, Ns, OrMatcher, ParserResultProxy(..), SepMatcher, SingletonMatcher, SingletonMatcher', SingletonParser, SingletonParserResult, SomeMatcher, SomeMatcher', Success, SuccessMatch, TupleParser, UnionParser, UnionParserResult, kind ParserResult)
 
 testSingletonMatcherT0 :: MatcherResultProxy (SuccessMatch "bar")
