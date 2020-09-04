@@ -19,6 +19,8 @@ foreign import kind Parser
 
 foreign import kind ParserList
 
+foreign import kind ParserUList
+
 foreign import kind ParserResult
 
 foreign import kind PositiveParserResult
@@ -37,6 +39,12 @@ foreign import data ConsMatcher :: Matcher -> MatcherList -> MatcherList
 foreign import data NilParser :: ParserList
 
 foreign import data ConsParser :: Parser -> ParserList -> ParserList
+
+foreign import data OptConsParser :: Parser -> ParserList -> ParserList
+
+foreign import data NilUParser :: ParserUList
+
+foreign import data ConsUParser :: Parser -> ParserUList -> ParserUList
 
 foreign import data NilPositiveParserResult :: PositiveParserResultList
 
@@ -94,12 +102,14 @@ foreign import data ListParser :: Parser -> Matcher -> Type -> Parser
 
 foreign import data TupleParser :: ParserList -> Matcher -> Type -> Parser
 
-foreign import data UnionParser :: ParserList -> Type -> Parser
+foreign import data UnionParser :: ParserUList -> Type -> Parser
 
 -- result
 foreign import data SuccessMatch :: Symbol -> MatcherResult
 
 foreign import data FailMatch :: Symbol -> Symbol -> MatcherResult
+
+foreign import data OptionalParserResult :: Type -> PositiveParserResult
 
 foreign import data SingletonParserResult :: Symbol -> Type -> PositiveParserResult
 
@@ -142,7 +152,14 @@ infixr 4 type ConsMatcher as :-
 type Np
   = NilParser
 
+type Nup
+  = NilUParser
+
 infixr 4 type ConsParser as :$
+
+infixr 4 type ConsUParser as :%
+
+infixr 4 type OptConsParser as :$?
 
 infix 4 type SingletonParser as !:!
 
@@ -239,6 +256,14 @@ instance isParserSuccessTrue :: IsParserSuccess (Success h) True
 
 instance isParserSuccessFalse :: IsParserSuccess (Failure t) False
 
+class IsParserOptional (r :: ParserList) (b :: Boolean) | r -> b
+
+instance isParserOptionalCons :: IsParserOptional (ConsParser x y) False
+
+instance isParserOptionalNil :: IsParserOptional NilParser False
+
+instance isParserOptionalOpt :: IsParserOptional (OptConsParser x y) True
+
 class IsMatcherSuccess (r :: MatcherResult) (b :: Boolean) | r -> b
 
 instance isMatcherSuccessTrue :: IsMatcherSuccess (SuccessMatch h) True
@@ -299,9 +324,29 @@ instance pprlgt :: PositiveParserResultListGate True s0 s1 s0
 
 instance pprlgf :: PositiveParserResultListGate False s0 s1 s1
 
+class PositiveParserResultGate (b :: Boolean) (s0 :: PositiveParserResult) (s1 :: PositiveParserResult) (r :: PositiveParserResult) | b s0 s1 -> r
+
+instance pprgt :: PositiveParserResultGate True s0 s1 s0
+
+instance pprgf :: PositiveParserResultGate False s0 s1 s1
+
+class GetParserType (p :: Parser) (t :: Type) | p -> p
+
+instance getParserTypeFailingParser :: GetParserType FailingParser Void
+
+instance getParserTypeSingletonParser :: GetParserType (SingletonParser m t) t
+
+instance getParserTypeListParser :: GetParserType (ListParser p m t) t
+
+instance getParserTypeTupleParser :: GetParserType (TupleParser pl m t) t
+
+instance getParserTypeUnionParser :: GetParserType (UnionParser pul t) t
+
 class GetParserHead (pl :: ParserList) (p :: Parser) | pl -> p
 
 instance getParserHeadCons :: GetParserHead (ConsParser h t) h
+
+instance getParserHeadOptCons :: GetParserHead (OptConsParser h t) h
 
 instance getParserHeadNil :: GetParserHead NilParser FailingParser
 
@@ -309,13 +354,17 @@ class GetParserTail (pl :: ParserList) (p :: ParserList) | pl -> p
 
 instance getParserTailCons :: GetParserTail (ConsParser h t) t
 
+instance getParserTailOptCons :: GetParserTail (OptConsParser h t) t
+
 instance getParserTailNil :: GetParserTail NilParser NilParser
 
 class IsNilParserList (pl :: ParserList) (b :: Boolean) | pl -> b
 
-instance isNilParserListTrue :: IsNilParserList NilParser True
+instance isNilParserListNil :: IsNilParserList NilParser True
 
-instance isNilParserListFalse :: IsNilParserList (ConsParser a b) False
+instance isNilParserListCons :: IsNilParserList (ConsParser a b) False
+
+instance isNilParserListOptCons :: IsNilParserList (OptConsParser a b) False
 
 class PositiveResultHack (r :: ParserResult) (h :: PositiveParserResult) | r -> h
 
@@ -528,15 +577,21 @@ instance tupleParserGateGo ::
   , ParserListGate onSep pl maybeParserTail parserTail
   , Parse toParse h headres -- parse the head. will yield failure if pl was empty 
   , IsParserSuccess headres headParsed -- did the parsing succeed?
+  , Append h t ht -- for failure message if needed
+  ----------------- IsParserOptional pl isOptional
+  ----------------- Or isOptional headParsed doNextStep
+  ----------------- SymbolGate headParsed t ht tailForNextStep
   , Not onSep notOnSep -- flip the separator
   , TupleParserGate headParsed notOnSep parserTail sep "" "" "" t tag tailres -- if the parsing succeeded, continue
   , IsParserSuccess tailres tailParsed -- did the tail parse as well
   , AsPositiveParserResultList tailres tailParserResults -- gets a list back, or nil if it's not a list 
+  ------------- And doNextStep tailParsed fullSuccess
   , And headParsed tailParsed fullSuccess -- did the whole thing succeed?
   , SafeCons th nt t -- new tail
   , Append h th nh -- new head
   , Compare t "" tailToEmptySym -- have we finished parsing the string?
   , IsEQ tailToEmptySym tailEmpty -- is the tail empty?
+  ----------------- And doNextStep tailEmpty hpte
   , And headParsed tailEmpty hpte -- we successfully parsed the head and the tail's empty
   , And hpte notOnSep endOfSymbol -- the head parsed was something we want, so we are at the end of the symbol
   , IsNilParserList parserTail parserListEmpty -- there is nothing left in the parser list
@@ -544,6 +599,8 @@ instance tupleParserGateGo ::
   , Or fullSuccess endOfSymbolAndPl done -- either everything succeeded or nothing left to parse
   , And fullSuccess onSep fullSuccessAndOnStep -- we are on a stepping stage
   , PositiveResultHack headres headParsedHack -- extract a positive result or a dummy value
+  ----------------- GetParserType parserHead parserHeadType
+  ----------------- PositiveParserResultGate isOptional headParsedHack (OptionalResult parserHeadType) realHeadParsedHack
   , PositiveParserResultListGate
       endOfSymbolAndPl
       (ConsPositiveParserResult headParsedHack NilPositiveParserResult)
@@ -554,7 +611,6 @@ instance tupleParserGateGo ::
   , Not done notDone
   , Not tailEmpty notTailEmpty
   , And notDone notTailEmpty keepGoing -- keep going if tail not empty, parser list not empty, and not done
-  , Append h t ht -- for failure message if needed
   , TupleParserGate keepGoing onSep pl sep h t nh nt tag o -- shift the head and tail and try again
   , ParserResultGate keepGoing o (Failure ht) oo
   , ParserResultGate done (Success (ListParserResult successfulOutput tag)) oo ooo
@@ -601,11 +657,11 @@ instance listParserGateGo ::
   ListParserGate True onSep p sep ph pt h t tag ooo
 
 -- Union parser
-class UnionParserRunner (b :: Boolean) (d :: ParserResult) (l :: ParserList) (s :: Symbol) (r :: ParserResult) | b d l s -> r
+class UnionParserRunner (b :: Boolean) (d :: ParserResult) (l :: ParserUList) (s :: Symbol) (r :: ParserResult) | b d l s -> r
 
-instance uprNilF :: UnionParserRunner False d NilParser s d
+instance uprNilF :: UnionParserRunner False d NilUParser s d
 
-instance uprNilT :: UnionParserRunner True d NilParser s (Failure s)
+instance uprNilT :: UnionParserRunner True d NilUParser s (Failure s)
 
 instance uprConsT ::
   ( Parse x s r
@@ -614,9 +670,9 @@ instance uprConsT ::
   , UnionParserRunner go d y s v
   , ParserResultGate b r v rr
   ) =>
-  UnionParserRunner True d (ConsParser x y) s rr
+  UnionParserRunner True d (ConsUParser x y) s rr
 
-instance uprConsF :: UnionParserRunner False d (ConsParser x y) s d
+instance uprConsF :: UnionParserRunner False d (ConsUParser x y) s d
 
 -- Match
 class Match (p :: Matcher) (s :: Symbol) (r :: MatcherResult) | p s -> r
@@ -774,11 +830,11 @@ instance parseList ::
   Parse (ListParser p m tag) s rr
 
 instance parseUnion ::
-  ( UnionParserRunner True (Failure s) (ConsParser x y) s r
+  ( UnionParserRunner True (Failure s) (ConsUParser x y) s r
   , IsParserSuccess r b
   , PositiveResultHack r insideR
   , ParserResultGate b (Success (UnionParserResult insideR tag)) r rr
   ) =>
-  Parse (UnionParser (ConsParser x y) tag) s rr
+  Parse (UnionParser (ConsUParser x y) tag) s rr
 
-instance parseUnionN :: Parse (UnionParser NilParser tag) s (Failure s)
+instance parseUnionN :: Parse (UnionParser NilUParser tag) s (Failure s)
