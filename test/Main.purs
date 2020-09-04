@@ -1,12 +1,14 @@
 module Test.Main where
 
 import Prelude
+import Data.Symbol (class IsSymbol, SProxy(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Prim.Row (class Cons)
+import Record (delete, get, insert)
 import Type.Data.Peano (D3, Z)
 import Type.Data.Row (RProxy(..))
-import Type.Parser (class Match, class Parse, type (!:!), type (:$), type (:/), type (<<>>), AndMatcher, AtLeastMatcher, AtMostMatcher, ConcatMatcher, ConsParser, ConsPositiveParserResult, ConsSymbol, FailMatch, ListParser, ListParserResult, Lowercase, ManyMatcher, ManyMatcher', MatcherResultProxy(..), NMatcher, NMatcher', NilParser, NilPositiveParserResult, NilSymbol, NotMatcher, Ns, OrMatcher, ParserResultProxy(..), SepMatcher, SingletonMatcher, SingletonMatcher', SingletonParser, SingletonParserResult, SomeMatcher, SomeMatcher', Success, SuccessMatch, TupleParser, kind ParserResult)
+import Type.Parser (class Match, class Parse, type (!:!), type (:$), type (:/), type (<<>>), AndMatcher, AtLeastMatcher, AtMostMatcher, ConcatMatcher, ConsParser, ConsPositiveParserResult, ConsSymbol, FailMatch, ListParser, ListParserResult, Lowercase, ManyMatcher, ManyMatcher', MatcherResultProxy(..), NMatcher, NMatcher', NilParser, NilPositiveParserResult, NilSymbol, NotMatcher, Ns, OrMatcher, ParserResultProxy(..), SepMatcher, SingletonMatcher, SingletonMatcher', SingletonParser, SingletonParserResult, SomeMatcher, SomeMatcher', Success, SuccessMatch, TupleParser, UnionParser, UnionParserResult, kind ParserResult)
 
 testSingletonMatcherT0 :: MatcherResultProxy (SuccessMatch "bar")
 testSingletonMatcherT0 =
@@ -636,6 +638,74 @@ testSingletonParserT0 =
           Int
       )
       "xyyyy"
+      c =>
+    ParserResultProxy c
+
+testParserUnionResultT3 ::
+  ParserResultProxy
+    ( Success
+        ( UnionParserResult
+            (SingletonParserResult "aaba" Number)
+            Int
+        )
+    )
+testParserUnionResultT3 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( UnionParser
+          ( ConsParser
+              ( SingletonParser
+                  ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+                  )
+                  Number
+              )
+              ( ConsParser
+                  ( SingletonParser
+                      ( SomeMatcher (ConsSymbol "c" NilSymbol)
+                      )
+                      Boolean
+                  )
+                  NilParser
+              )
+          )
+          Int
+      )
+      "aaba"
+      c =>
+    ParserResultProxy c
+
+testParserUnionResultT4 ::
+  ParserResultProxy
+    ( Success
+        ( UnionParserResult
+            (SingletonParserResult "cc" Boolean)
+            Int
+        )
+    )
+testParserUnionResultT4 =
+  ParserResultProxy ::
+    forall c.
+    Parse
+      ( UnionParser
+          ( ConsParser
+              ( SingletonParser
+                  ( SomeMatcher (ConsSymbol "a" (ConsSymbol "b" NilSymbol))
+                  )
+                  Number
+              )
+              ( ConsParser
+                  ( SingletonParser
+                      ( SomeMatcher (ConsSymbol "c" NilSymbol)
+                      )
+                      Boolean
+                  )
+                  NilParser
+              )
+          )
+          Int
+      )
+      "cc"
       c =>
     ParserResultProxy c
 
